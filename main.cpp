@@ -160,7 +160,7 @@ void readFileAndAddStaff(const string& filename) {
 
 		staffs.push_back(employee);
 		checkSubCompany(employee.subCompanyName);
-		addToDepartment(employee.departmentName);
+		addToDepartment(employee.departmentName, employee);
 		checkPosition(employee);
 
 		if (file.peek() == EOF) break;
@@ -223,7 +223,7 @@ void addNewStaff() {
 
 	staffs.push_back(newEmployee);
 	checkSubCompany(newEmployee.subCompanyName);
-	addToDepartment(newEmployee.departmentName);
+	addToDepartment(newEmployee.departmentName, newEmployee);
 	checkPosition(newEmployee);
 }
 
