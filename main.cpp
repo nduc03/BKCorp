@@ -4,12 +4,11 @@
 #include <fstream>
 #include <algorithm>
 
-#define CHUA_HOI_THAY_VE_DEPARTMENT true
-
 using namespace std;
 
+// Ng Quang Son
 struct Staff {
-	int ID;
+	int ID = -1;
 	string surname;
 	string givenName;
 	string subCompanyName;
@@ -24,29 +23,10 @@ struct Staff {
 	vector<string> worktime;
 };
 
-struct Department
-{
-	string name;
-	Staff head;
-	Staff deputyHead;
-	vector<Staff> staffs;
-};
-
-struct SubCompany
-{
-	string name;
-	Staff director;
-	vector<Staff> coDirectors;
-	vector<Department> departments;
-};
-
-// BKCorporation info
-Staff chairman;
-vector<Staff> viceChairmen;
-vector<SubCompany> subCompanies;
-vector<Department> departments;
 vector<Staff> staffs;
+const Staff INVALID_STAFF = Staff();
 
+// Nhat Duc
 // Check if the string is a valid staff id
 bool isID(const string& str)
 {
@@ -56,74 +36,190 @@ bool isID(const string& str)
 	return all_of(str.begin(), str.end(), ::isdigit);
 }
 
-// Check if a sub company existed, if not, add new
-void checkSubCompany(const string& name) {
-	if (name == "BKCorporation") return;
-	for (auto& subCompany : subCompanies) {
-		if (subCompany.name == name) return;
-	}
-	SubCompany newComp;
-	newComp.name = name;
-	subCompanies.push_back(newComp);
+// Nhat Duc
+// Used to check if they are the same staff
+// To check whether findStaffByID() can found Staff or not, use this statement:
+// comparesStaff(findStaffByID(some_id_here), INVALID_STAFF)
+// Return true means that Staff does not exist
+bool compareStaff(const Staff& staff1, const Staff& staff2) {
+	return staff1.ID == staff2.ID;
 }
 
-// add staff to the corresponding department, if department does not exist, create new then add
-void addToDepartment(const string& name, const Staff& staff) {
-	if (CHUA_HOI_THAY_VE_DEPARTMENT) return;
-	for (auto& department : departments) {
-		if (department.name == name) department.staffs.push_back(staff);
-	}
-	Department newDepartment;
-	newDepartment.name = name;
-	departments.push_back(newDepartment);
-	newDepartment.staffs.push_back(staff);
+// Nhat Duc
+string getLower(string str) {
+	transform(str.begin(), str.end(), str.begin(), ::tolower);
+	return str;
+}
+ 
+// Nhat Duc
+string trim(const string& value) {
+	string result = value;
+	result.erase(0, result.find_first_not_of(' '));
+	auto offset = result.find_first_of(' ');
+	result.erase(offset, result.size() - offset);
+	return result;
 }
 
-// This will check the special position of the staff and add position info to the corresponding 
-// sub company or department if missing
-void checkPosition(Staff& staff) {
-	auto& position = staff.position;
-
-	if (position == "Chủ tịch") {
-		chairman = staff;
-	}
-	else if (position == "Phó chủ tịch") {
-		viceChairmen.push_back(staff);
-	}
-	else if (position == "Giám đốc") {
-		for (auto& subCompany : subCompanies) {
-			if (subCompany.name == staff.subCompanyName) {
-				subCompany.director = staff;
-			}
-		}
-		throw exception("SubCompany not found when adding director. Check add new staff logic and put checkSubCompany before checkPosition.");
-	}
-	else if (position == "Phó giám đốc") {
-		for (auto& subCompany : subCompanies) {
-			if (subCompany.name == staff.subCompanyName) {
-				subCompany.coDirectors.push_back(staff);
-			}
-		}
-		throw exception("SubCompany not found when adding co-director. Check add new staff logic and put checkSubCompany before checkPosition.");
-	}
-	else if (position == "Trưởng phòng") {
-		for (auto& department : departments) {
-			if (department.name == staff.departmentName) {
-				department.head = staff;
-			}
-		}
-		throw exception("Deparment not found when adding head. Check add new staff logic and put addToDepartment before checkPosition.");
-	}
-	else if (position == "Phó phòng") {
-		for (auto& department : departments) {
-			if (department.name == staff.departmentName) {
-				department.deputyHead = staff;
-			}
-		}
-		throw exception("Deparment not found when adding deputy head. Check add new staff logic and put addToDepartment before checkPosition.");
-	}
+// Nhat Duc
+string normalizeString(const string& str) {
+	return trim(getLower(str));
 }
 
+// Nhat Duc
+string getStaffFullName(const Staff& staff) {
+	return staff.surname + " " + staff.givenName;
+}
+
+// Nhat Duc
+// Use to split the string format "BKCorperation/SubCompany/Department" to vector for easy parsing data
+vector<string> splitComDepartment(string str) {
+	vector<string> result;
+	size_t pos;
+	do {
+		pos = str.find('/');
+		result.push_back(str.substr(pos));
+		str.erase(0, pos + 1);
+	} while (pos != string::npos);
+	return result;
+}
+
+// Nhat Duc
+Staff findStaffById(int id) {
+	for (const auto& staff : staffs) {
+		if (staff.ID == id) return staff;
+	}
+	return INVALID_STAFF;
+}
+
+// Nhat Duc
+// Return empty vector if not found
+vector<Staff> findStaffByName(const string& name) {
+	auto normalizedName = normalizeString(name);
+	vector<Staff> result;
+
+	for (const auto& staff : staffs) {
+		if (normalizeString(staff.surname) == normalizedName) result.push_back(staff);
+		if (normalizeString(staff.givenName) == normalizedName) result.push_back(staff);
+		if (normalizeString(getStaffFullName(staff)) == normalizedName) result.push_back(staff);
+	}
+	return result;
+}
+
+// Nhat duc
+// Return index -1 if staff is not exist
+int getIndexByStaffID(int id) {
+	for (int i = 0; i < staffs.size(); i++) {
+		if (staffs.at(i).ID == id) return i;
+	}
+	return -1;
+}
+
+// Nhat Duc
+// Return empty vector if not found
+vector<string> getAllSubCompanyName() {
+	vector<string> result;
+	for (const auto& staff : staffs) {
+		if (find(result.begin(), result.end(), staff.subCompanyName) != result.end())
+			result.push_back(staff.subCompanyName);
+	}
+	return result;
+}
+
+// Nhat Duc
+// Return empty vector if not found
+vector<string> getAllDepartmentName() {
+	vector<string> result;
+	for (const auto& staff : staffs) {
+		if (find(result.begin(), result.end(), staff.departmentName) != result.end())
+			result.push_back(staff.departmentName);
+	}
+	return result;
+}
+
+// Nhat Duc
+// Return empty vector if not found
+vector<Staff> getAllStaffSubCompany(string companyName) {
+	vector<Staff> result;
+	for (const auto& staff : staffs) {
+		if (staff.subCompanyName == companyName) result.push_back(staff);
+	}
+	return result;
+}
+
+// Nhat Duc
+// Return empty vector if not found
+vector<Staff> getAllCoDirector(string companyName) {
+	vector<Staff> result;
+	for (const auto& staff : staffs) {
+		if (staff.subCompanyName == companyName && normalizeString(staff.position) == "phó giám đốc")
+			result.push_back(staff);
+	}
+	return result;
+}
+
+// Nhat Duc
+Staff findDirector(string companyName) {
+	for (const auto& staff : staffs) {
+		if (staff.subCompanyName == companyName && normalizeString(staff.position) == "giám đốc")
+			return staff;
+	}
+	return INVALID_STAFF;
+}
+
+// Nhat Duc
+// Return empty vector if not found
+vector<Staff> getAllStaffDepartment(string departmentName) {
+	vector<Staff> result;
+	for (const auto& staff : staffs) {
+		if (staff.departmentName == departmentName) result.push_back(staff);
+	}
+	return result;
+}
+
+// Nhat Duc
+Staff findDeputyHead(string departmentName) {
+	for (const auto& staff : staffs) {
+		if (staff.departmentName == departmentName && normalizeString(staff.position) == "phó phòng")
+			return staff;
+	}
+	return INVALID_STAFF;
+}
+
+// Nhat Duc
+Staff findHead(string departmentName) {
+	for (const auto& staff : staffs) {
+		if (staff.departmentName == departmentName && normalizeString(staff.position) == "trưởng phòng")
+			return staff;
+	}
+	return INVALID_STAFF;
+}
+
+// Nhat Duc
+Staff findChairman() {
+	for (const auto& staff : staffs) {
+		if (normalizeString(staff.position) == "chủ tịch")
+			return staff;
+	}
+	return INVALID_STAFF;
+}
+
+// Nhat Duc
+// Return empty vector if not found
+vector<Staff> getAllViceChairmen() {
+	vector<Staff> result;
+	for (const auto& staff : staffs) {
+		if (normalizeString(staff.position) == "phó chủ tịch")
+			result.push_back(staff);
+	}
+	return result;
+}
+
+// Nhat Duc
+bool staffNotExisted(int id) {
+	return compareStaff(findStaffById(id), INVALID_STAFF);
+}
+
+// Ng Quang Son & Nhat Duc
 void readFileAndAddStaff(const string& filename) {
 	ifstream file(filename);
 
@@ -145,7 +241,15 @@ void readFileAndAddStaff(const string& filename) {
 
 		getline(file, employee.surname);
 		getline(file, employee.givenName);
-		getline(file, employee.subCompanyName);
+		getline(file, buff);
+		try {
+			auto comDepart = splitComDepartment(buff);
+			employee.subCompanyName = comDepart.at(1);
+			employee.departmentName = comDepart.at(2);
+		}
+		catch (out_of_range) {
+			// Do nothing, just ignore error.
+		}
 		getline(file, employee.position);
 		getline(file, employee.birth);
 		getline(file, employee.hometown);
@@ -159,9 +263,6 @@ void readFileAndAddStaff(const string& filename) {
 		}
 
 		staffs.push_back(employee);
-		checkSubCompany(employee.subCompanyName);
-		addToDepartment(employee.departmentName, employee);
-		checkPosition(employee);
 
 		if (file.peek() == EOF) break;
 	}
@@ -169,6 +270,7 @@ void readFileAndAddStaff(const string& filename) {
 	file.close();
 }
 
+// Ng Quang Son & Nhat Duc
 void addNewStaff() {
 	Staff newEmployee;
 
@@ -176,7 +278,12 @@ void addNewStaff() {
 
 	cout << "Nhap ma so nhan vien: ";
 	getline(cin, input);
-	newEmployee.ID = stol(input);
+	newEmployee.ID = stoi(input);
+
+	if (staffNotExisted(newEmployee.ID)) {
+		cout << "ID staff existed, cannot add";
+		return;
+	}
 
 	cout << "Nhap ho va ten dem: ";
 	getline(cin, newEmployee.surname);
@@ -184,9 +291,12 @@ void addNewStaff() {
 	cout << "Nhap ten: ";
 	getline(cin, newEmployee.givenName);
 
-	cout << "Nhap don vi: ";
+	cout << "Nhap cong ty con: ";
 	getline(cin, newEmployee.subCompanyName);
-	
+
+	cout << "Nhap don vi phong ban: ";
+	getline(cin, newEmployee.departmentName);
+
 	cout << "Nhap chuc vu: ";
 	getline(cin, newEmployee.position);
 
@@ -222,54 +332,86 @@ void addNewStaff() {
 	}
 
 	staffs.push_back(newEmployee);
-	checkSubCompany(newEmployee.subCompanyName);
-	addToDepartment(newEmployee.departmentName, newEmployee);
-	checkPosition(newEmployee);
 }
 
-string getStaffFullName(const Staff& staff) {
-	return staff.surname + " " + staff.givenName;
-}
-
-void printDepartmentInfo(const Department& department) {
+// Nhat Duc
+void printDepartmentInfo(const string& department) {
 	cout << "+++++++++++++++++++++++++++++++++++++++++++++++++\n";
-	cout << "Department name: " << department.name;
-	cout << "\Head: " << getStaffFullName(department.head);
-	cout << "\nDeputy Head: " << getStaffFullName(department.deputyHead);
+	cout << "Department name: " << department;
+	cout << "\nHead: " << getStaffFullName(findHead(department));
+	cout << "\nDeputy Head: " << getStaffFullName(findDeputyHead(department));
 	cout << endl;
 }
 
-void printSubCompanyInfo(const SubCompany& subCompany) {
+// Nhat Duc
+void printSubCompanyInfo(const string& subCompany) {
 	cout << "-------------------------------------------------\n";
-	cout << "Subsidiary company name: " << subCompany.name;
-	cout << "\nDirector: " << getStaffFullName(subCompany.director);
+	cout << "Subsidiary company name: " << subCompany;
+	cout << "\nDirector: " << getStaffFullName(findDirector(subCompany));
 	cout << "\nCo-Director: ";
-	for (auto& coDirector : subCompany.coDirectors) {
+	auto allCoDirector = getAllCoDirector(subCompany);
+	for (const auto& coDirector : allCoDirector) {
 		cout << getStaffFullName(coDirector);
-		if (coDirector.ID != subCompany.coDirectors.back().ID) cout << " ,";
+		if (coDirector.ID != allCoDirector.back().ID) cout << " ,";
 	}
 	cout << endl;
 }
 
+// Nhat Duc
 void getBKCorpInfo() {
-	cout << "Chairman name: " << getStaffFullName(chairman) << "\nVice-Chairmen: ";
-	for (auto& viceChairman : viceChairmen) {
+	cout << "Chairman name: " << getStaffFullName(findChairman()) << "\nVice-Chairmen: ";
+	auto allViceChairmen = getAllViceChairmen();
+	for (const auto& viceChairman : allViceChairmen) {
 		cout << getStaffFullName(viceChairman);
-		if (viceChairman.ID != viceChairmen.back().ID) cout << " ,";
+		if (viceChairman.ID != allViceChairmen.back().ID) cout << " ,";
 	}
 	cout << "\n";
-	for (auto& subCompany : subCompanies) {
+	for (const auto& subCompany : getAllSubCompanyName()) {
 		printSubCompanyInfo(subCompany);
 	}
 	cout << "\n";
-	for (auto& department : departments) {
+	for (const auto& department : getAllDepartmentName()) {
 		printDepartmentInfo(department);
 	}
 	cout << "Total staff: " << staffs.size() << endl;
 }
 
+// Nhat Duc
+void saveAllStaffToFile() {
+
+}
+
+// Someone
+void randomTime() {
+
+}
+
+// Nhat Duc & Quang Son
+int timeOffset(string timeString) {
+
+}
+
+// Ng Duc Trong
+void updateStaff(int staffID) {
+
+}
+
+// Ng Cong Duy
+void showStaffInfo(string staffName) {
+
+}
+
+// Khanh
+void printStaffWorkingHours(int staffID) {
+
+}
+
+// Phuong
+void showUnitInfo(string UnitName) {
+
+}
 
 int main() {
-	addNewStaff();
-	getBKCorpInfo();
+	// làm sau cùng 
+	// hoặc làm nháp để test hàm có hoạt động đúng ko
 }
